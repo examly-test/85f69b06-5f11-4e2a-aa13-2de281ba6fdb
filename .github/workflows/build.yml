@@ -1,29 +1,37 @@
-name: Build
-'on':
+name: SonarCloud analysis
+
+on:
   push:
-    branches:
-      - '*'
+    branches: [ main ]
   pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  pull-requests: read # allows SonarCloud to decorate PRs with analysis results
+
 jobs:
-  build:
-    name: Build
+  Analysis:
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-dotnet@v2
-        with:
-          dotnet-version: '3.1.x'
-      - name: Build and analyze
+      - name: Download the repo
+        uses: actions/checkout@v3
+        
+      - name: Analyze with SonarCloud         
+
+        # You can pin the exact commit or the version.
+        # uses: SonarSource/sonarcloud-github-action@de2e56b42aa84d0b1c5b622644ac17e505c9a049
+        uses: SonarSource/sonarcloud-github-action@de2e56b42aa84d0b1c5b622644ac17e505c9a049
         env:
-          GITHUB_TOKEN: 85f69b06-5f11-4e2a-aa13-2de281ba6fdb
-          SONAR_TOKEN: 6c6b2469c3347bcc5a90cd7dbec5c8ce8a816eb6
-        run: >-
-         dotnet run --project aspnetcore-dev
-         dotnet tool install --global dotnet-sonarscanner
-         dotnet sonarscanner begin /k:"examly-test_85f69b06-5f11-4e2a-aa13-2de281ba6fdb" /o:"examly-test" /d:sonar.login="6c6b2469c3347bcc5a90cd7dbec5c8ce8a816eb6"
-         dotnet build ../aspnet-core/EventCloud.sln
-         dotnet sonarscanner end /d:sonar.login="6c6b2469c3347bcc5a90cd7dbec5c8ce8a816eb6"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   # Generate a token on Sonarcloud.io, add it to the secrets of this repo with the name SONAR_TOKEN (Settings > Secrets > Actions > add new repository secret)
+        with:
+          # Additional arguments for the sonarcloud scanner
+          args:             
+            # Unique keys of your project and organization. You can find them in SonarCloud > Information (bottom-left menu)
+            # mandatory
+            -Dsonar.projectKey=examly-test_85f69b06-5f11-4e2a-aa13-2de281ba6fdb
+            -Dsonar.organization=examly-test
+            -Dsonar.sources=aspnet-core-angular/,mvc-angularjs/src 
+            -Dsonar.verbose=true
